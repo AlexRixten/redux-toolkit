@@ -1,25 +1,21 @@
-import logo from './logo.svg';
-import './App.css';
+import { AddPostForm } from "./components/AddPostForm";
+import { PostsList } from "./components/PostsList";
+import { Routes, Route } from "react-router-dom";
+import { Layout } from "./components/Layout";
+import { SinglePostPage } from "./page/SinglePostPage";
+import EditPostForm from "./components/EditPOstForm";
 
-function App() {
+export const App = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<PostsList />} />
+        <Route path="post">
+          <Route index element={<AddPostForm />} />
+          <Route path=":postId" element={<SinglePostPage />} />
+          <Route path="edit/:postId" element={<EditPostForm />} />
+        </Route>
+      </Route>
+    </Routes>
   );
-}
-
-export default App;
+};
