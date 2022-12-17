@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { selectPostById, updatePost, deletePost } from "../store/app/posts/postsSlice";
@@ -6,7 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 
 import { selectAllUsers } from "../store/app/users/usersSlice";
 
-const EditPostForm = () => {
+export const EditPostForm = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -125,5 +125,3 @@ const EditPostForm = () => {
     </section>
   );
 };
-
-export default EditPostForm;
