@@ -1,7 +1,6 @@
-import React from "react";
-import { useForm } from "react-hook-form";
-import { useDispatch, useSelector } from "react-redux";
-import { selectPostById, updatePost, deletePost } from "../store/app/posts/postsSlice";
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
+import { selectPostById, useUpdatePostMutation, useDeletePostMutation } from "../store/app/posts/postsSlice";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { selectAllUsers } from "../store/app/users/usersSlice";
@@ -9,44 +8,16 @@ import { selectAllUsers } from "../store/app/users/usersSlice";
 export const EditPostForm = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+
+  const [updatePost, { isLoading }] = useUpdatePostMutation();
+  const [deletePost] = useDeletePostMutation();
 
   const post = useSelector((state) => selectPostById(state, Number(postId)));
   const users = useSelector(selectAllUsers);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({
-    defaultValues: {
-      title: post?.title,
-      content: post?.body,
-      userId: post?.userId,
-    },
-  });
-
-  const onSubmit = (data) => {
-    const { title, content, userId } = data;
-    // dispatch(addNewPost({title, body: content, userId})).unwrap();
-    try {
-      dispatch(
-        updatePost({
-          id: post.id,
-          title,
-          body: content,
-          userId,
-          reactions: post.reactions,
-        })
-      ).unwrap();
-      reset();
-      navigate(`/post/${postId}`);
-    } catch (err) {
-      console.error("Failed to save the post", err);
-    } finally {
-    }
-  };
+  const [title, setTitle] = useState(post?.title);
+  const [content, setContent] = useState(post?.body);
+  const [userId, setUserId] = useState(post?.userId);
 
   if (!post) {
     return (
@@ -56,68 +27,73 @@ export const EditPostForm = () => {
     );
   }
 
+  const onTitleChanged = (e) => setTitle(e.target.value);
+  const onContentChanged = (e) => setContent(e.target.value);
+  const onAuthorChanged = (e) => setUserId(Number(e.target.value));
+
+  const canSave = [title, content, userId].every(Boolean) && !isLoading;
+
+  const onSavePostClicked = async () => {
+    if (canSave) {
+      try {
+        await updatePost({ id: post.id, title, body: content, userId }).unwrap();
+
+        setTitle("");
+        setContent("");
+        setUserId("");
+        navigate(`/post/${postId}`);
+      } catch (err) {
+        console.error("Failed to save the post", err);
+      }
+    }
+  };
+
   const usersOptions = users.map((user) => (
     <option key={user.id} value={user.id}>
       {user.name}
     </option>
   ));
 
-  const onDeletePostClicked = () => {
+  const onDeletePostClicked = async () => {
     try {
-      dispatch(deletePost({ id: post.id })).unwrap();
+      await deletePost({ id: post.id }).unwrap();
+
+      setTitle("");
+      setContent("");
+      setUserId("");
       navigate("/");
     } catch (err) {
       console.error("Failed to delete the post", err);
-    } finally {
     }
   };
 
   return (
     <section>
       <h2>Edit Post</h2>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form>
         <label htmlFor="postTitle">Post Title:</label>
         <input
           type="text"
           id="postTitle"
           name="postTitle"
-          {...register("title", {
-            required: "Обязательное поле",
-          })}
+          value={title}
+          onChange={onTitleChanged}
         />
-        {errors.title ? (
-          <div style={{ height: 40 }}>
-            <p style={{ color: "red", margin: 0 }}>{errors.title.message}</p>
-          </div>
-        ) : null}
         <label htmlFor="postAuthor">Author:</label>
-        <select id="postAuthor">
-          <option
-            {...register("userId", {
-              required: "Обязательное поле",
-            })}
-          ></option>
+        <select id="postAuthor" value={userId} onChange={onAuthorChanged}>
+          <option value=""></option>
           {usersOptions}
         </select>
-        {errors.userId ? (
-          <div style={{ height: 40 }}>
-            <p style={{ color: "red", margin: 0 }}>{errors.userId.message}</p>
-          </div>
-        ) : null}
         <label htmlFor="postContent">Content:</label>
         <textarea
           id="postContent"
           name="postContent"
-          {...register("content", {
-            required: "Обязательное поле",
-          })}
+          value={content}
+          onChange={onContentChanged}
         />
-        {errors.content ? (
-          <div style={{ height: 40 }}>
-            <p style={{ color: "red", margin: 0 }}>{errors.content.message}</p>
-          </div>
-        ) : null}
-        <input type="submit" value="Save Post" />
+        <button type="button" onClick={onSavePostClicked} disabled={!canSave}>
+          Save Post
+        </button>
         <button className="deleteButton" type="button" onClick={onDeletePostClicked}>
           Delete Post
         </button>

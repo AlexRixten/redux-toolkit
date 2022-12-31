@@ -1,27 +1,43 @@
-import React from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { useForm } from "react-hook-form";
+import React, { useState } from "react";
+import { useSelector } from "react-redux";
 
-import { addNewPost  } from "../store/app/posts/postsSlice";
+import { useAddNewPostMutation } from "../store/app/posts/postsSlice";
 import { selectAllUsers } from "../store/app/users/usersSlice";
+import { useNavigate } from "react-router-dom";
 
 export const AddPostForm = () => {
-  const dispatch = useDispatch();
-  const users = useSelector(selectAllUsers);
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm();
+  const [addNewPost, { isLoading }] = useAddNewPostMutation();
 
-  const onSubmit = (data) => {
-    const { title, content, userId } = data;
-    dispatch(addNewPost({title, body: content, userId})).unwrap();
-    reset();
+  const navigate = useNavigate();
+
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [userId, setUserId] = useState("");
+
+  const users = useSelector(selectAllUsers);
+
+  const onTitleChanged = (e) => setTitle(e.target.value);
+  const onContentChanged = (e) => setContent(e.target.value);
+  const onAuthorChanged = (e) => setUserId(e.target.value);
+
+  const canSave = [title, content, userId].every(Boolean) && !isLoading;
+
+  const onSavePostClicked = async () => {
+    if (canSave) {
+      try {
+        await addNewPost({ title, body: content, userId }).unwrap();
+
+        setTitle("");
+        setContent("");
+        setUserId("");
+        navigate("/");
+      } catch (err) {
+        console.error("Failed to save the post", err);
+      }
+    }
   };
 
-  const usersOptions = users?.map((user) => (
+  const usersOptions = users.map((user) => (
     <option key={user.id} value={user.id}>
       {user.name}
     </option>
@@ -30,51 +46,30 @@ export const AddPostForm = () => {
   return (
     <section>
       <h2>Add a New Post</h2>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form>
         <label htmlFor="postTitle">Post Title:</label>
         <input
           type="text"
           id="postTitle"
           name="postTitle"
-          {...register("title", {
-            required: "Обязательное поле",
-          })}
+          value={title}
+          onChange={onTitleChanged}
         />
-        {errors.title ? (
-          <div style={{ height: 40 }}>
-            <p style={{ color: "red", margin: 0 }}>{errors.title.message}</p>
-          </div>
-        ) : null}
-
         <label htmlFor="postAuthor">Author:</label>
-        <select
-          id="postAuthor"
-          {...register("userId", {
-            required: "Обязательное поле",
-          })}
-        >
-          <option value="">Сhoose an author</option>
+        <select id="postAuthor" value={userId} onChange={onAuthorChanged}>
+          <option value=""></option>
           {usersOptions}
         </select>
-        {errors.userId ? (
-          <div style={{ height: 40 }}>
-            <p style={{ color: "red", margin: 0 }}>{errors.userId.message}</p>
-          </div>
-        ) : null}
         <label htmlFor="postContent">Content:</label>
         <textarea
           id="postContent"
           name="postContent"
-          {...register("content", {
-            required: "Обязательное поле",
-          })}
+          value={content}
+          onChange={onContentChanged}
         />
-        {errors.content ? (
-          <div style={{ height: 40 }}>
-            <p style={{ color: "red", margin: 0 }}>{errors.content.message}</p>
-          </div>
-        ) : null}
-        <button type="submit">Save Post</button>
+        <button type="button" onClick={onSavePostClicked} disabled={!canSave}>
+          Save Post
+        </button>
       </form>
     </section>
   );
